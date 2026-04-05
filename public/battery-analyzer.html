@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Battery Analyzer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0c0c10;
+      --surf:    #16161f;
+      --surf2:   #1e1e2a;
+      --surf3:   #252533;
+      --green:   #4ade80;
+      --cyan:    #22d3ee;
+      --text:    #eeeef5;
+      --muted:   #7070a0;
+      --danger:  #f87171;
+      --warn:    #fbbf24;
+      --border:  rgba(255,255,255,0.06);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      padding: 14px 14px 60px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Header ── */
+    .header { text-align: center; padding: 10px 0 18px; }
+    .header h1 {
+      font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--green), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .header p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Mode badge ── */
+    .mode-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700; padding: 4px 10px;
+      border-radius: 20px; margin-top: 6px; letter-spacing: .4px;
+    }
+    .mode-badge.server {
+      background: rgba(74,222,128,.12); color: var(--green);
+      border: 1px solid rgba(74,222,128,.25);
+    }
+    .mode-badge.standalone {
+      background: rgba(251,191,36,.1); color: var(--warn);
+      border: 1px solid rgba(251,191,36,.25);
+    }
+    .mode-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: currentColor;
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surf); border-radius: 18px;
+      border: 1px solid var(--border); padding: 18px; margin-bottom: 14px;
+    }
+
+    /* ── Status card ── */
+    .row-between { display: flex; align-items: center; justify-content: space-between; }
+    .section-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+
+    .charging-badge { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
+    .ch-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background .3s; }
+    .ch-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); animation: blink 2s ease-in-out infinite; }
+
+    .batt-row { display: flex; align-items: center; gap: 18px; margin-top: 14px; }
+    .batt-icon { flex-shrink: 0; }
+    .batt-shell {
+      width: 54px; height: 28px; border: 2px solid rgba(255,255,255,.22);
+      border-radius: 5px; padding: 3px; position: relative;
+    }
+    .batt-shell::after {
+      content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
+      width: 4px; height: 11px; background: rgba(255,255,255,.22); border-radius: 0 3px 3px 0;
+    }
+    .batt-fill {
+      height: 100%; border-radius: 2px; background: var(--green);
+      transition: width .6s ease, background .4s;
+    }
+    .batt-fill.low    { background: var(--danger); }
+    .batt-fill.medium { background: var(--warn); }
+
+    .batt-pct { font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -1.5px; }
+    .batt-sub { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+
+    /* ── Active session ── */
+    .active-block {
+      margin-top: 16px;
+      background: linear-gradient(135deg, rgba(74,222,128,.07), rgba(34,211,238,.04));
+      border: 1px solid rgba(74,222,128,.18); border-radius: 12px; padding: 14px;
+    }
+    .active-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--green); margin-bottom: 12px; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .stat-box { background: rgba(0,0,0,.25); border-radius: 9px; padding: 10px 12px; }
+    .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
+    .stat-val { font-size: 16px; font-weight: 700; }
+    .stat-val.hi { color: var(--green); }
+
+    /* ── Warning box ── */
+    .warn-box {
+      background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.3);
+      border-radius: 12px; padding: 14px 16px; font-size: 13px; color: var(--warn);
+      line-height: 1.6; margin-bottom: 14px;
+    }
+    .warn-box a { color: var(--cyan); }
+    .warn-box code {
+      background: rgba(255,255,255,.08); padding: 1px 6px; border-radius: 4px;
+      font-family: monospace; font-size: 12px;
+    }
+
+    /* ── History ── */
+    .hist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .hist-title { font-size: 15px; font-weight: 700; }
+    .btn-clear {
+      font-size: 12px; color: var(--danger); background: none; border: none;
+      cursor: pointer; padding: 5px 10px; border-radius: 7px; font-family: inherit;
+    }
+    .btn-clear:active { background: rgba(248,113,113,.12); }
+
+    /* ── Session card ── */
+    .session-card {
+      background: var(--surf); border-radius: 16px;
+      border: 1px solid var(--border); padding: 16px; margin-bottom: 12px;
+    }
+    .sc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .sc-date { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .sc-gain {
+      font-size: 12px; font-weight: 700; color: var(--green);
+      background: rgba(74,222,128,.1); padding: 3px 10px; border-radius: 20px;
+    }
+    .sc-gain.neg { color: var(--danger); background: rgba(248,113,113,.1); }
+
+    .time-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .t-label { font-size: 20px; font-weight: 800; white-space: nowrap; letter-spacing: -.5px; }
+    .t-track {
+      flex: 1; height: 3px; border-radius: 2px;
+      background: linear-gradient(to right, var(--cyan), var(--green)); position: relative;
+    }
+    .t-track::after {
+      content: ''; position: absolute; right: -1px; top: 50%; transform: translateY(-50%);
+      width: 0; height: 0;
+      border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid var(--green);
+    }
+
+    .sc-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .sc-stat { background: var(--surf2); border-radius: 9px; padding: 9px 8px; text-align: center; }
+    .sc-stat-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .sc-stat-val { font-size: 15px; font-weight: 700; }
+
+    /* Level bar */
+    .level-bar-wrap {}
+    .level-bar-lbls { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 5px; }
+    .level-bar { height: 8px; background: var(--surf3); border-radius: 4px; overflow: hidden; position: relative; }
+    .lb-final   { position: absolute; left:0; top:0; height:100%; background: linear-gradient(to right, var(--cyan), var(--green)); border-radius: 4px; }
+    .lb-initial { position: absolute; left:0; top:0; height:100%; background: rgba(255,255,255,.13); border-radius: 4px 0 0 4px; }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty .ico { font-size: 44px; margin-bottom: 12px; }
+    .empty p { font-size: 13px; line-height: 1.6; }
+
+    /* ── Footer ── */
+    .footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 24px; line-height: 1.7; }
+    .footer code { background: var(--surf2); padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Battery Analyzer</h1>
+  <p>Charging session tracker</p>
+  <div id="mode-badge" class="mode-badge standalone">
+    <div class="mode-dot"></div>
+    <span id="mode-text">Connecting…</span>
+  </div>
+</div>
+
+<!-- shown only in standalone mode when Battery API is missing -->
+<div id="api-warn" class="warn-box" style="display:none">
+  <strong>Battery API not available in this browser.</strong><br>
+  For background tracking open Chrome and go to
+  <code>http://localhost:7777</code> after starting <code>battery_monitor.py</code> in Termux.
+</div>
+
+<div class="card">
+  <div class="row-between">
+    <span class="section-lbl">Live Status</span>
+    <div class="charging-badge">
+      <div class="ch-dot" id="ch-dot"></div>
+      <span id="ch-text" style="color:var(--muted)">Checking…</span>
+    </div>
+  </div>
+  <div class="batt-row">
+    <div class="batt-icon">
+      <div class="batt-shell">
+        <div class="batt-fill" id="batt-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div>
+      <div class="batt-pct" id="batt-pct">--%</div>
+      <div class="batt-sub" id="batt-sub">Initializing…</div>
+    </div>
+  </div>
+
+  <div id="active-block" class="active-block" style="display:none">
+    <div class="active-title">Active Session</div>
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-lbl">Started at</div>
+        <div class="stat-val hi" id="as-start">--:--</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">Duration</div>
+        <div class="stat-val hi" id="as-dur">0s</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">Initial %</div>
+        <div class="stat-val" id="as-init">--%</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">Current %</div>
+        <div class="stat-val" id="as-cur">--%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hist-header">
+  <span class="hist-title">Charging History</span>
+  <button class="btn-clear" id="btn-clear">Clear All</button>
+</div>
+<div id="history"></div>
+
+<div class="footer" id="footer-note">
+  All data stored locally on your device.<br>
+  Keep this page open while charging for accurate tracking.
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   MODE DETECTION
+   The app works in two modes:
+   1. SERVER mode  – page served from http://localhost:7777 via
+                     battery_monitor.py running in Termux.
+                     Full background collection, tab not needed.
+   2. STANDALONE   – opened as a local file or without the server.
+                     Uses Browser Battery API + localStorage.
+   ══════════════════════════════════════════════════════════════ */
+
+const SERVER_BASE   = 'http://localhost:7777';
+const SESSIONS_KEY  = 'bca_sessions_v2';
+const ACTIVE_KEY    = 'bca_active_v2';
+
+let mode            = 'detecting';  // 'server' | 'standalone'
+let battery         = null;         // standalone only
+let activeSession   = null;         // standalone only
+let tickTimer       = null;
+let pollTimer       = null;
+
+/* ── Formatting ─────────────────────────────────────────────── */
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+function fmtDate(ts) {
+  const d = new Date(ts), now = new Date();
+  const yest = new Date(now); yest.setDate(now.getDate() - 1);
+  if (d.toDateString() === now.toDateString())  return 'Today';
+  if (d.toDateString() === yest.toDateString()) return 'Yesterday';
+  return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function fmtDur(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+
+/* ── Battery UI ─────────────────────────────────────────────── */
+function setBatteryUI(pct, charging) {
+  if (pct != null) {
+    document.getElementById('batt-pct').textContent = `${pct}%`;
+    const fill = document.getElementById('batt-fill');
+    fill.style.width = `${pct}%`;
+    fill.className = 'batt-fill' + (pct <= 20 ? ' low' : pct <= 50 ? ' medium' : '');
+    document.getElementById('batt-sub').textContent = charging
+      ? `Charging · ${100 - pct}% to full`
+      : `Not charging · ${pct}% remaining`;
+  }
+  const dot  = document.getElementById('ch-dot');
+  const text = document.getElementById('ch-text');
+  if (charging === true) {
+    dot.classList.add('on');
+    text.textContent  = 'Charging';
+    text.style.color  = 'var(--green)';
+  } else if (charging === false) {
+    dot.classList.remove('on');
+    text.textContent  = 'Not Charging';
+    text.style.color  = 'var(--muted)';
+  }
+}
+
+function setModeUI(m) {
+  const badge = document.getElementById('mode-badge');
+  const text  = document.getElementById('mode-text');
+  if (m === 'server') {
+    badge.className = 'mode-badge server';
+    text.textContent = 'Background monitor connected';
+    document.getElementById('footer-note').innerHTML =
+      'Connected to <code>battery_monitor.py</code> — data collected 24/7, even when this tab is closed.';
+  } else {
+    badge.className = 'mode-badge standalone';
+    text.textContent = 'Standalone mode (tab must stay open)';
+  }
+}
+
+/* ── Active session UI ──────────────────────────────────────── */
+function showActive(startTime, initialLevel, currentLevel, startedMs) {
+  document.getElementById('active-block').style.display = 'block';
+  document.getElementById('as-start').textContent = fmtTime(startTime);
+  document.getElementById('as-init').textContent  = initialLevel  != null ? `${initialLevel}%`  : '--%';
+  document.getElementById('as-cur').textContent   = currentLevel  != null ? `${currentLevel}%`  : '--%';
+  document.getElementById('as-dur').textContent   = fmtDur(Date.now() - startedMs);
+}
+function hideActive() { document.getElementById('active-block').style.display = 'none'; }
+
+/* ── History rendering ──────────────────────────────────────── */
+function renderSessions(sessions) {
+  const el = document.getElementById('history');
+  if (!sessions.length) {
+    el.innerHTML = `<div class="empty"><div class="ico">🔋</div>
+      <p>No sessions yet.<br>Plug in your phone to start tracking!</p></div>`;
+    return;
+  }
+  el.innerHTML = sessions.map((s, i) => {
+    const gain = (s.finalLevel != null && s.initialLevel != null)
+      ? s.finalLevel - s.initialLevel : null;
+    const gainLabel = gain != null ? (gain >= 0 ? `+${gain}%` : `${gain}%`) : '--';
+    const gainClass = (gain != null && gain < 0) ? 'sc-gain neg' : 'sc-gain';
+    const initW  = s.initialLevel ?? 0;
+    const finalW = s.finalLevel   ?? 0;
+    return `
+    <div class="session-card">
+      <div class="sc-head">
+        <span class="sc-date">${fmtDate(s.startTime)}</span>
+        <span class="${gainClass}">${gainLabel}</span>
+      </div>
+      <div class="time-row">
+        <span class="t-label">${fmtTime(s.startTime)}</span>
+        <div class="t-track"></div>
+        <span class="t-label">${fmtTime(s.endTime)}</span>
+      </div>
+      <div class="sc-stats">
+        <div class="sc-stat">
+          <div class="sc-stat-lbl">Duration</div>
+          <div class="sc-stat-val">${fmtDur(s.duration)}</div>
+        </div>
+        <div class="sc-stat">
+          <div class="sc-stat-lbl">Started at</div>
+          <div class="sc-stat-val">${s.initialLevel != null ? s.initialLevel + '%' : '--'}</div>
+        </div>
+        <div class="sc-stat">
+          <div class="sc-stat-lbl">Ended at</div>
+          <div class="sc-stat-val">${s.finalLevel != null ? s.finalLevel + '%' : '--'}</div>
+        </div>
+      </div>
+      <div class="level-bar-wrap">
+        <div class="level-bar-lbls"><span>0%</span><span>Battery range</span><span>100%</span></div>
+        <div class="level-bar">
+          <div class="lb-final"   style="width:${finalW}%"></div>
+          <div class="lb-initial" style="width:${initW}%"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SERVER MODE
+   ══════════════════════════════════════════════════════════════ */
+let lastActiveStart = null;
+
+async function serverPoll() {
+  try {
+    const res  = await fetch(`${SERVER_BASE}/api/data`, { cache: 'no-store' });
+    const data = await res.json();
+
+    // Live battery
+    if (data.live) setBatteryUI(data.live.level, data.live.charging);
+
+    // Active session
+    const a = data.activeSession;
+    if (a) {
+      lastActiveStart = lastActiveStart || a.startTime;
+      showActive(a.startTime, a.initialLevel, a.currentLevel ?? data.live?.level, a.startTime);
+    } else {
+      lastActiveStart = null;
+      hideActive();
+    }
+
+    // History
+    renderSessions(data.sessions || []);
+
+  } catch (e) {
+    // Server went away — fall back to standalone
+    console.warn('Server poll failed, falling back to standalone');
+    clearInterval(pollTimer);
+    initStandalone();
+  }
+}
+
+async function initServer() {
+  mode = 'server';
+  setModeUI('server');
+  renderSessions([]);
+  document.getElementById('btn-clear').onclick = async () => {
+    if (!confirm('Delete all charging history?')) return;
+    await fetch(`${SERVER_BASE}/api/clear`);
+    renderSessions([]);
+  };
+  serverPoll();
+  pollTimer = setInterval(serverPoll, 5000);
+  // Also tick duration every second for the active session display
+  setInterval(() => {
+    if (lastActiveStart) {
+      document.getElementById('as-dur').textContent = fmtDur(Date.now() - lastActiveStart);
+    }
+  }, 1000);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STANDALONE MODE  (Browser Battery API + localStorage)
+   ══════════════════════════════════════════════════════════════ */
+const getSessions = () => { try { return JSON.parse(localStorage.getItem(SESSIONS_KEY)) || []; } catch { return []; } };
+const setSessions = v  => localStorage.setItem(SESSIONS_KEY, JSON.stringify(v));
+const getActive   = () => { try { return JSON.parse(localStorage.getItem(ACTIVE_KEY)); } catch { return null; } };
+const setActive   = v  => v ? localStorage.setItem(ACTIVE_KEY, JSON.stringify(v)) : localStorage.removeItem(ACTIVE_KEY);
+
+function refreshUI_standalone() {
+  if (!battery) return;
+  const pct      = Math.round(battery.level * 100);
+  const charging = battery.charging;
+  setBatteryUI(pct, charging);
+  if (activeSession) document.getElementById('as-cur').textContent = `${pct}%`;
+}
+
+function beginSession_standalone() {
+  const pct = battery ? Math.round(battery.level * 100) : null;
+  activeSession = { startTime: Date.now(), initialLevel: pct };
+  setActive(activeSession);
+  showActive(activeSession.startTime, activeSession.initialLevel, pct, activeSession.startTime);
+  startTick();
+  refreshUI_standalone();
+}
+
+function endSession_standalone() {
+  if (!activeSession) activeSession = getActive();
+  if (activeSession) {
+    const pct = battery ? Math.round(battery.level * 100) : null;
+    const rec = {
+      startTime:    activeSession.startTime,
+      endTime:      Date.now(),
+      initialLevel: activeSession.initialLevel,
+      finalLevel:   pct,
+      duration:     Date.now() - activeSession.startTime
+    };
+    const list = getSessions(); list.unshift(rec); setSessions(list);
+  }
+  activeSession = null; setActive(null);
+  stopTick(); hideActive();
+  renderSessions(getSessions());
+  refreshUI_standalone();
+}
+
+function startTick() {
+  stopTick();
+  tickTimer = setInterval(() => {
+    if (!activeSession) return;
+    document.getElementById('as-dur').textContent = fmtDur(Date.now() - activeSession.startTime);
+  }, 1000);
+}
+function stopTick() { if (tickTimer) { clearInterval(tickTimer); tickTimer = null; } }
+
+async function initStandalone() {
+  mode = 'standalone';
+  setModeUI('standalone');
+  renderSessions(getSessions());
+
+  document.getElementById('btn-clear').onclick = () => {
+    if (!confirm('Delete all charging history?')) return;
+    setSessions([]); renderSessions([]);
+  };
+
+  if (!('getBattery' in navigator)) {
+    document.getElementById('api-warn').style.display = 'block';
+    document.getElementById('ch-text').textContent = 'Unavailable';
+    document.getElementById('batt-pct').textContent = 'N/A';
+    document.getElementById('batt-sub').textContent = 'Battery API not supported — use Chrome on Android';
+    return;
+  }
+
+  try {
+    battery = await navigator.getBattery();
+    refreshUI_standalone();
+
+    if (battery.charging) {
+      const persisted = getActive();
+      activeSession = persisted || { startTime: Date.now(), initialLevel: Math.round(battery.level * 100) };
+      if (!persisted) setActive(activeSession);
+      showActive(activeSession.startTime, activeSession.initialLevel, Math.round(battery.level * 100), activeSession.startTime);
+      startTick();
+    }
+
+    battery.addEventListener('chargingchange', () => {
+      battery.charging ? beginSession_standalone() : endSession_standalone();
+    });
+    battery.addEventListener('levelchange', refreshUI_standalone);
+
+  } catch (e) {
+    document.getElementById('api-warn').style.display = 'block';
+    document.getElementById('batt-sub').textContent = 'Could not access Battery API';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INIT — try server first, fall back to standalone
+   ══════════════════════════════════════════════════════════════ */
+(async function init() {
+  try {
+    const res = await Promise.race([
+      fetch(`${SERVER_BASE}/api/ping`, { cache: 'no-store' }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 1500))
+    ]);
+    if (res.ok) {
+      await initServer();
+    } else {
+      await initStandalone();
+    }
+  } catch {
+    await initStandalone();
+  }
+})();
+</script>
+</body>
+</html>

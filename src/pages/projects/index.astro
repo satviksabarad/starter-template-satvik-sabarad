@@ -1,0 +1,114 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { SITE_TITLE } from '../../consts';
+
+const projects = [
+  {
+    slug: 'battery-analyzer',
+    title: 'Battery Charging Rate Analyzer',
+    description: 'A real-time battery monitoring tool for Android (Termux). Tracks charging sessions with start time, battery levels, and duration. Runs a local web dashboard with session history stored in localStorage.',
+    tags: ['Python', 'HTML', 'Android / Termux'],
+  },
+  {
+    slug: 'aeroconnect',
+    title: 'AeroConnect — Inflight Wi-Fi Predictor',
+    description: 'Predicts inflight Wi-Fi quality and availability for any flight route. Models satellite coverage, beam handoffs, polar blackout zones, and per-airline provider quirks on an interactive map with a Gantt-style timeline.',
+    tags: ['JavaScript', 'Mapbox GL', 'Physics Engine'],
+  },
+  {
+    slug: 'gantt',
+    title: 'AI Gantt Chart Builder',
+    description: 'Chat with Claude to build Gantt charts instantly. Describe your project in plain English, paste a task list, or upload a document — the AI extracts tasks, dates, and dependencies and renders an interactive timeline.',
+    tags: ['Claude AI', 'Frappe Gantt', 'JavaScript'],
+  },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title={`Projects | ${SITE_TITLE}`} description="Projects by Satvik Sabarad" />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <h1>Projects</h1>
+      <p class="subtitle">Things I've built and tinkered with.</p>
+
+      <div class="project-list">
+        {projects.map((p) => (
+          <a href={`/projects/${p.slug}/`} class="project-card">
+            <div class="card-body">
+              <h2>{p.title}</h2>
+              <p class="desc">{p.description}</p>
+              <div class="tags">
+                {p.tags.map(t => <span class="tag">{t}</span>)}
+              </div>
+            </div>
+            <div class="card-arrow">→</div>
+          </a>
+        ))}
+      </div>
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2em 1em 3em;
+  }
+  h1 { margin-bottom: 0.25em; }
+  .subtitle {
+    color: rgb(var(--gray));
+    margin-top: 0;
+    margin-bottom: 2em;
+  }
+  .project-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+  }
+  .project-card {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    border: 1px solid rgb(var(--gray-light));
+    border-radius: 12px;
+    padding: 1.4em 1.6em;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .project-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 12px rgba(var(--accent-dark), 0.08);
+  }
+  .card-body { flex: 1; }
+  .card-body h2 { margin: 0 0 0.5em; font-size: 1.1em; }
+  .desc {
+    margin: 0 0 0.8em;
+    color: rgb(var(--gray-dark));
+    font-size: 0.92em;
+    line-height: 1.6;
+  }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4em; }
+  .tag {
+    background: rgb(var(--gray-light));
+    border-radius: 4px;
+    padding: 0.2em 0.6em;
+    font-size: 0.78em;
+  }
+  .card-arrow {
+    font-size: 1.4em;
+    color: rgb(var(--gray));
+    flex-shrink: 0;
+  }
+  .project-card:hover .card-arrow {
+    color: var(--accent);
+  }
+</style>

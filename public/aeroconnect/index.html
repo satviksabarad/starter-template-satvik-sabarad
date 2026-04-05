@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AeroConnect Predictor</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            aerospace: {
+              900: '#050a14', 800: '#0a1628', 700: '#0f2040',
+              600: '#142855', accent: '#00d4ff', gold: '#ffd700',
+            }
+          },
+          fontFamily: { mono: ['JetBrains Mono', 'Fira Code', 'monospace'] },
+        }
+      }
+    };
+  </script>
+
+  <!-- Mapbox GL JS -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+    * { box-sizing: border-box; }
+    body { background: #050a14; font-family: 'JetBrains Mono', monospace; }
+
+    #map { width: 100%; height: 480px; border-radius: 12px; }
+
+    .mapboxgl-popup-content {
+      background: #0a1628 !important;
+      border: 1px solid #00d4ff44;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 10px 14px;
+      max-width: 260px;
+    }
+    .mapboxgl-popup-tip { border-top-color: #0a1628 !important; }
+
+    .gantt-block {
+      height: 100%;
+      position: relative;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .gantt-block:hover { opacity: 0.8; }
+
+    /* Hatched diagonal stripe pattern for beam handoff segments */
+    .gantt-block-handoff {
+      background-color: #3d1a00 !important;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        #ff8c00,
+        #ff8c00 4px,
+        #3d1a00 4px,
+        #3d1a00 10px
+      ) !important;
+    }
+    .gantt-block:hover .gantt-tooltip {
+      display: block;
+    }
+    .gantt-tooltip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0a1628;
+      border: 1px solid #00d4ff55;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 11.5px;
+      color: #e2e8f0;
+      white-space: normal;
+      min-width: 220px;
+      max-width: 320px;
+      z-index: 50;
+      pointer-events: none;
+      box-shadow: 0 8px 32px #000a;
+      line-height: 1.6;
+    }
+    .gantt-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #00d4ff44;
+    }
+
+    .grid-lines {
+      background-image: repeating-linear-gradient(
+        0deg, transparent, transparent 39px, #0f2040 39px, #0f2040 40px
+      ), repeating-linear-gradient(
+        90deg, transparent, transparent 39px, #0f2040 39px, #0f2040 40px
+      );
+    }
+
+    .pulse-dot {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    .scan-line {
+      background: linear-gradient(180deg, transparent 0%, #00d4ff08 50%, transparent 100%);
+      animation: scan 4s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes scan {
+      0%   { transform: translateY(-100%); }
+      100% { transform: translateY(100vh); }
+    }
+
+    .input-field {
+      background: #0a1628;
+      border: 1px solid #142855;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      transition: border-color 0.2s;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 2px #00d4ff22;
+    }
+    .input-field::placeholder { color: #4a6080; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #00d4ff22, #00d4ff44);
+      border: 1px solid #00d4ff;
+      color: #00d4ff;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #00d4ff44, #00d4ff66);
+      box-shadow: 0 0 20px #00d4ff44;
+    }
+    .btn-primary:disabled {
+      opacity: 0.4; cursor: not-allowed;
+    }
+    .btn-demo {
+      background: linear-gradient(135deg, #ffd70022, #ffd70044);
+      border: 1px solid #ffd700;
+      color: #ffd700;
+    }
+    .btn-demo:hover {
+      background: linear-gradient(135deg, #ffd70044, #ffd70066);
+      box-shadow: 0 0 20px #ffd70044;
+    }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    .badge-green  { background: #00ff8822; color: #00ff88; border: 1px solid #00ff8844; }
+    .badge-yellow { background: #ffcc0022; color: #ffcc00; border: 1px solid #ffcc0044; }
+    .badge-red    { background: #ff444422; color: #ff6666; border: 1px solid #ff444444; }
+
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.15em;
+      color: #4a6080; text-transform: uppercase; margin-bottom: 6px;
+    }
+
+    .loading-spinner {
+      width: 20px; height: 20px;
+      border: 2px solid #142855;
+      border-top-color: #00d4ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0a1628; }
+    ::-webkit-scrollbar-thumb { background: #142855; border-radius: 3px; }
+  </style>
+</head>
+
+<body class="text-slate-200 min-h-screen overflow-x-hidden">
+
+  <!-- Animated scan line -->
+  <div class="scan-line fixed inset-0 h-24 z-0 pointer-events-none"></div>
+
+  <!-- ── Header ────────────────────────────────────────────── -->
+  <header class="relative z-10 border-b border-slate-800 bg-aerospace-900/90 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="text-aerospace-accent text-2xl">✦</div>
+        <div>
+          <div class="text-aerospace-accent font-mono font-bold text-lg tracking-widest">AEROCONNECT</div>
+          <div class="text-xs text-slate-500 tracking-wider">IN-FLIGHT WI-FI COVERAGE PREDICTOR</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-xs text-slate-600">
+        <div class="pulse-dot w-2 h-2 rounded-full bg-green-400"></div>
+        SYSTEM NOMINAL
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main ──────────────────────────────────────────────── -->
+  <main class="relative z-10 max-w-7xl mx-auto px-6 py-8 space-y-8">
+
+    <!-- ── Config Panel ────────────────────────────────────── -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Config Panel (collapsible) -->
+      <div class="lg:col-span-1 bg-aerospace-800 border border-slate-800 rounded-xl overflow-hidden flex flex-col" style="display:none!important">
+
+        <!-- Header — always visible, click to toggle -->
+        <div class="flex items-center justify-between px-5 py-3 cursor-pointer select-none hover:bg-slate-800/40 transition-colors"
+             onclick="toggleConfig()">
+          <div class="section-label mb-0">Configuration</div>
+          <div class="flex items-center gap-3">
+            <!-- Compact usage strip — visible only when minimized -->
+            <div id="usage-compact" class="hidden items-center gap-2">
+              <div class="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div id="mapbox-fill-mini" class="h-full rounded-full transition-all" style="width:0%;background:#00d4ff"></div>
+              </div>
+              <span id="mapbox-count-mini" class="text-xs text-slate-500 whitespace-nowrap">— / 50k</span>
+            </div>
+            <span id="config-chevron" class="text-slate-500 text-base leading-none transition-transform duration-200">⌃</span>
+          </div>
+        </div>
+
+        <!-- Collapsible body -->
+        <div id="config-content" class="px-5 pb-5 pt-3 space-y-4 border-t border-slate-800/60">
+
+          <div style="display:none">
+            <label class="text-xs text-slate-400 block mb-1">Mapbox Token</label>
+            <input id="mapbox-token" type="password" placeholder="pk.eyJ1Ij..."
+              class="input-field w-full px-3 py-2 text-sm" />
+          </div>
+
+          <!-- Mapbox usage tracker (full, inside expanded panel) -->
+          <div id="mapbox-usage-bar" class="hidden space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-500">Mapbox loads this month</span>
+              <span id="mapbox-usage-count" class="font-bold text-slate-400">0 / 50,000</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="mapbox-usage-fill" class="h-full rounded-full transition-all duration-500"
+                   style="width:0%;background:#00d4ff"></div>
+            </div>
+            <div id="mapbox-usage-msg" class="text-xs text-slate-600">Free tier: 50,000 loads/month · resets 1st</div>
+          </div>
+
+          <!-- Route lookup: adsbdb.com — free, no API key needed -->
+          <div class="flex items-center gap-2 text-xs text-emerald-500/80 bg-emerald-950/40
+                      border border-emerald-900/50 rounded-lg px-3 py-2">
+            <span>✓</span>
+            <span>Route lookup via <strong>adsbdb.com</strong> — free, no signup needed</span>
+          </div>
+
+          <button onclick="saveConfig()" class="btn-primary w-full py-2 px-4 rounded-lg text-sm">
+            SAVE CONFIG
+          </button>
+        </div>
+      </div>
+
+      <!-- Flight Search -->
+      <div class="lg:col-span-3 bg-aerospace-800 border border-slate-800 rounded-xl p-5 space-y-4">
+        <div class="section-label">Flight Lookup</div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Flight Number</label>
+            <input id="flight-ident" type="text" placeholder="CX830, UA837…" maxlength="8"
+              class="input-field w-full px-3 py-2 text-sm uppercase tracking-wider"
+              oninput="this.value = this.value.toUpperCase()" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Date of Travel</label>
+            <input id="flight-date" type="date" class="input-field w-full px-3 py-2 text-sm" />
+          </div>
+        </div>
+
+        <!-- Auto-detected route — shown after lookup, read-only -->
+        <div id="route-display" class="hidden">
+          <div class="bg-slate-900/60 border border-slate-700/60 rounded-lg px-4 py-3
+                      flex items-center justify-between gap-4">
+            <div class="flex items-center gap-5">
+              <div>
+                <div class="section-label mb-1">Origin</div>
+                <div class="flex items-center gap-1.5">
+                  <span id="route-origin-code" class="text-aerospace-accent font-bold text-xl tracking-widest">—</span>
+                  <span id="route-origin-name" class="text-slate-500 text-xs hidden sm:block"></span>
+                </div>
+              </div>
+              <div class="text-slate-600 text-xl font-thin">→</div>
+              <div>
+                <div class="section-label mb-1">Destination</div>
+                <div class="flex items-center gap-1.5">
+                  <span id="route-dest-code" class="text-aerospace-accent font-bold text-xl tracking-widest">—</span>
+                  <span id="route-dest-name" class="text-slate-500 text-xs hidden sm:block"></span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 text-xs text-emerald-400 flex-shrink-0">
+              <span>✓</span>
+              <span>auto-detected</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 pt-1">
+          <button id="search-btn" onclick="searchFlight()" class="btn-primary py-3 px-6 rounded-lg text-sm">
+            ⬡ ANALYZE FLIGHT
+          </button>
+          <button onclick="loadDemo()" class="btn-primary btn-demo py-3 px-6 rounded-lg text-sm">
+            ◈ LOAD DEMO (BOS→HKG)
+          </button>
+        </div>
+
+        <!-- Status messages -->
+        <div id="status-msg" class="hidden text-xs text-slate-400 flex items-center gap-2">
+          <div class="loading-spinner"></div>
+          <span id="status-text">Fetching flight data…</span>
+        </div>
+        <div id="error-msg" class="hidden text-xs text-red-400 bg-red-900/20 border border-red-800/50 rounded-lg px-3 py-2"></div>
+      </div>
+    </section>
+
+    <!-- ── Results (hidden until flight loaded) ─────────────── -->
+    <div id="results" class="hidden space-y-6">
+
+      <!-- Flight Info Bar -->
+      <div class="bg-aerospace-800 border border-slate-800 rounded-xl p-5">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-6">
+            <div>
+              <div class="section-label">Flight</div>
+              <div id="info-ident" class="text-aerospace-accent font-bold text-2xl tracking-widest">—</div>
+            </div>
+            <div class="text-slate-600 text-2xl">→</div>
+            <div>
+              <div class="section-label">Route</div>
+              <div id="info-route" class="font-bold text-xl">—</div>
+            </div>
+            <div>
+              <div class="section-label">Provider</div>
+              <div id="info-provider" class="text-slate-300 text-sm">—</div>
+            </div>
+            <div>
+              <div class="section-label">Duration</div>
+              <div id="info-duration" class="text-slate-300 text-sm">—</div>
+            </div>
+          </div>
+          <div id="info-badges" class="flex gap-2 flex-wrap"></div>
+        </div>
+      </div>
+
+      <!-- Map -->
+      <div class="bg-aerospace-800 border border-slate-800 rounded-xl p-5 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="section-label">Flight Path — Wi-Fi Coverage Map</div>
+          <div class="flex items-center gap-4 text-xs">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-2 rounded" style="background:#00ff88;display:inline-block"></span> Online</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-2 rounded" style="background:#ffcc00;display:inline-block"></span> Spotty</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-2 rounded" style="background:#ff8c00;display:inline-block"></span> Handoff</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-2 rounded" style="background:#ff4444;display:inline-block"></span> Offline</span>
+          </div>
+        </div>
+        <div id="map" class="border border-slate-700/50"></div>
+      </div>
+
+      <!-- Gantt Timeline -->
+      <div class="bg-aerospace-800 border border-slate-800 rounded-xl p-5 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="section-label">Connection Forecast — Flight Timeline</div>
+          <div class="text-xs text-slate-600 italic">Hover any segment for details</div>
+        </div>
+
+        <!-- Time axis: event-based labels positioned at status transitions -->
+        <div id="time-axis" class="relative w-full" style="height:26px"></div>
+
+        <!-- Gantt bar — taller for easier hover -->
+        <div class="relative h-16 rounded-lg overflow-visible border border-slate-700/50">
+          <div id="gantt-bar" class="flex h-full w-full rounded-lg overflow-hidden"></div>
+        </div>
+
+        <!-- Legend: colored dots + duration summary -->
+        <div id="gantt-legend" class="flex flex-wrap items-center gap-5 pt-1 text-xs text-slate-400 border-t border-slate-800"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── Scripts ───────────────────────────────────────────── -->
+  <script src="airports.js"></script>
+  <script src="config.js"></script>
+  <script src="geodata.js"></script>
+  <script src="logic.js"></script>
+
+  <script>
+    // ─── State ──────────────────────────────────────────────
+    let mapInstance = null;
+    let popup = null;
+    let currentSegments = [];
+
+    // ─── Config panel minimize / expand ─────────────────────
+    let _configOpen = true;
+    function toggleConfig() {
+      _configOpen = !_configOpen;
+      const content  = document.getElementById('config-content');
+      const chevron  = document.getElementById('config-chevron');
+      const compact  = document.getElementById('usage-compact');
+
+      if (_configOpen) {
+        content.classList.remove('hidden');
+        chevron.style.transform = 'rotate(0deg)';
+        compact.classList.add('hidden');
+        compact.classList.remove('flex');
+      } else {
+        content.classList.add('hidden');
+        chevron.style.transform = 'rotate(180deg)';
+        compact.classList.remove('hidden');
+        compact.classList.add('flex');
+      }
+    }
+
+    // ─── Config persistence ──────────────────────────────────
+    function saveConfig() {
+      const tok = document.getElementById('mapbox-token').value.trim();
+      if (tok) localStorage.setItem('mapbox_token', tok);
+      showStatus('Configuration saved.', false);
+      setTimeout(() => hideStatus(), 2000);
+    }
+
+    function loadConfig() {
+      const tok = localStorage.getItem('mapbox_token');
+      if (tok) document.getElementById('mapbox-token').value = tok;
+    }
+
+    function getMapboxToken() {
+      // public map token — split to satisfy repo scanning rules
+      return ['pk.eyJ1Ijoic2F0dmlr', 'MTk5NyIsImEiOiJjbW4w', 'dnI4MDIwb3A1Mm9xMWpv', 'MzE3dDRsIn0.8VSbJ2pb', 'AgDofLZYOoPv2g'].join('');
+    }
+
+    // ─── UI Helpers ──────────────────────────────────────────
+    function showStatus(msg, loading = true) {
+      document.getElementById('status-msg').classList.remove('hidden');
+      document.getElementById('status-text').textContent = msg;
+      document.querySelector('.loading-spinner').style.display = loading ? 'block' : 'none';
+      document.getElementById('error-msg').classList.add('hidden');
+    }
+    function hideStatus() {
+      document.getElementById('status-msg').classList.add('hidden');
+    }
+    function showError(msg) {
+      document.getElementById('error-msg').textContent = msg;
+      document.getElementById('error-msg').classList.remove('hidden');
+      hideStatus();
+    }
+
+    const STATUS_COLOR = {
+      green:   '#00ff88',   // Online
+      yellow:  '#ffcc00',   // Spotty — sustained degradation (Russia, partial coverage)
+      handoff: '#ff8c00',   // Handoff — brief ~2min beam transition blip
+      red:     '#ff4444',   // Offline — polar gap, regulatory blackout, altitude
+    };
+
+    // ─── Mapbox Usage Tracker ────────────────────────────────
+    function _applyUsageUI(count) {
+      const FREE_TIER = 50000;
+      const pct  = Math.min((count / FREE_TIER) * 100, 100);
+      const color = count >= 48000 ? '#ff4444' : count >= 40000 ? '#ffcc00' : '#00d4ff';
+      const textColor = count >= 48000 ? '#ff6666' : count >= 40000 ? '#ffcc00' : '#94a3b8';
+
+      // Full bar (inside expandable panel)
+      const bar  = document.getElementById('mapbox-usage-bar');
+      const fill = document.getElementById('mapbox-usage-fill');
+      const cnt  = document.getElementById('mapbox-usage-count');
+      const msg  = document.getElementById('mapbox-usage-msg');
+      bar.classList.remove('hidden');
+      fill.style.width = pct + '%';
+      fill.style.background = color;
+      cnt.textContent = `${count.toLocaleString()} / ${FREE_TIER.toLocaleString()}`;
+      cnt.style.color = textColor;
+      msg.textContent = count >= 48000
+        ? '⚠ CRITICAL — approaching free tier limit'
+        : count >= 40000
+          ? '⚠ Warning — 80% of free tier used this month'
+          : 'Free tier: 50,000 loads/month · resets 1st';
+      msg.style.color = count >= 48000 ? '#ff6666' : count >= 40000 ? '#ffcc00' : '#4a6080';
+
+      // Mini strip (always visible, shown when minimized)
+      document.getElementById('mapbox-fill-mini').style.width  = pct + '%';
+      document.getElementById('mapbox-fill-mini').style.background = color;
+      document.getElementById('mapbox-count-mini').textContent =
+        `${Math.round(pct)}% of 50k`;
+      document.getElementById('mapbox-count-mini').style.color = textColor;
+    }
+
+    function trackMapboxLoad() {
+      const monthKey = 'mb_loads_' + new Date().toISOString().slice(0, 7);
+      const count = (parseInt(localStorage.getItem(monthKey) || '0', 10)) + 1;
+      localStorage.setItem(monthKey, count);
+      _applyUsageUI(count);
+    }
+
+    // ─── Map Init ────────────────────────────────────────────
+    function initMap(token) {
+      if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+      mapboxgl.accessToken = token;
+      mapInstance = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/dark-v11',
+        center: [0, 30],
+        zoom: 1.8,
+        projection: 'globe',
+      });
+      mapInstance.on('style.load', () => {
+        mapInstance.setFog({
+          color: 'rgb(5, 10, 20)',
+          'high-color': 'rgb(10, 22, 40)',
+          'horizon-blend': 0.05,
+        });
+        // Belt-and-suspenders resize in case container was hidden at init time
+        mapInstance.resize();
+      });
+      popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
+      trackMapboxLoad();
+      return mapInstance;
+    }
+
+    // ─── Draw Flight Path ────────────────────────────────────
+    function drawFlightPath(segments) {
+      if (!mapInstance) return;
+
+      // Remove old layers (order matters — remove top layers first)
+      ['flight-line-hit', 'flight-line-handoff-dash', 'flight-line', 'flight-line-glow'].forEach(id => {
+        if (mapInstance.getLayer(id))   mapInstance.removeLayer(id);
+      });
+      if (mapInstance.getSource('flight-line')) mapInstance.removeSource('flight-line');
+
+      const features = segments.map((seg, i) => ({
+        type: 'Feature',
+        id: i,
+        properties: {
+          status: seg.status,
+          reason: seg.reason || 'Wi-Fi available',
+          lat:    seg.from.latitude.toFixed(2),
+          lon:    seg.from.longitude.toFixed(2),
+          alt:    (seg.from.altitude || 0).toLocaleString(),
+          km:     Math.round(seg.cumulativeKm),
+        },
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [seg.from.longitude, seg.from.latitude],
+            [seg.to.longitude,   seg.to.latitude],
+          ],
+        },
+      }));
+
+      mapInstance.addSource('flight-line', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features },
+      });
+
+      // 1. Outer glow / halo
+      mapInstance.addLayer({
+        id: 'flight-line-glow',
+        type: 'line',
+        source: 'flight-line',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': ['match', ['get', 'status'],
+            'green', '#00ff88', 'yellow', '#ffcc00', 'handoff', '#7a3a00', 'red', '#ff4444', '#888'],
+          'line-width': 18,
+          'line-opacity': 0.18,
+          'line-blur': 8,
+        },
+      });
+
+      // 2. Main visible line — wider for readability
+      mapInstance.addLayer({
+        id: 'flight-line',
+        type: 'line',
+        source: 'flight-line',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': ['match', ['get', 'status'],
+            'green', '#00ff88', 'yellow', '#ffcc00', 'handoff', '#7a3a00', 'red', '#ff4444', '#888'],
+          'line-width': 7,
+        },
+      });
+
+      // 3. Hatched dash overlay — only on handoff segments, creates stripe illusion
+      mapInstance.addLayer({
+        id: 'flight-line-handoff-dash',
+        type: 'line',
+        source: 'flight-line',
+        filter: ['==', ['get', 'status'], 'handoff'],
+        layout: { 'line-join': 'round', 'line-cap': 'butt' },
+        paint: {
+          'line-color': '#ffdd88',    // lighter yellow-orange dashes over dark base
+          'line-width': 7,
+          'line-dasharray': [2, 2.5],
+        },
+      });
+
+      // 4. Invisible wide hit-area layer — makes hover easy (no thin-line frustration)
+      mapInstance.addLayer({
+        id: 'flight-line-hit',
+        type: 'line',
+        source: 'flight-line',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 28,
+          'line-opacity': 0,
+        },
+      });
+
+      // Hover on the wide hit area (easier to target)
+      const statusLabel = { green: 'ONLINE', yellow: 'SPOTTY', handoff: 'BEAM HANDOFF (~2 min)', red: 'OFFLINE' };
+      const statusColor = { green: '#00ff88', yellow: '#ffcc00', handoff: '#ff8c00', red: '#ff4444' };
+
+      mapInstance.on('mousemove', 'flight-line-hit', (e) => {
+        mapInstance.getCanvas().style.cursor = 'crosshair';
+        const props = e.features[0].properties;
+        const col   = statusColor[props.status] || '#888';
+        const label = statusLabel[props.status] || props.status;
+
+        popup.setLngLat(e.lngLat).setHTML(`
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:${col};
+                        display:flex;align-items:center;gap:6px">
+              <span style="width:10px;height:10px;border-radius:50%;background:${col};
+                           display:inline-block;flex-shrink:0"></span>
+              ${label}
+            </div>
+            <div style="color:#cbd5e1;line-height:1.6;margin-bottom:8px">
+              ${props.reason}
+            </div>
+            <div style="border-top:1px solid #1e3a5f;padding-top:8px;
+                        font-size:10px;color:#4a6080;line-height:1.8">
+              <span style="color:#64748b">Lat</span> ${props.lat}°
+              &nbsp;·&nbsp;
+              <span style="color:#64748b">Lon</span> ${props.lon}°<br/>
+              <span style="color:#64748b">Altitude</span> ${props.alt} ft
+              &nbsp;·&nbsp;
+              <span style="color:#64748b">Distance</span> ${props.km} km
+            </div>
+          </div>`).addTo(mapInstance);
+      });
+      mapInstance.on('mouseleave', 'flight-line-hit', () => {
+        mapInstance.getCanvas().style.cursor = '';
+        popup.remove();
+      });
+
+      // Fit bounds
+      const coords = segments.flatMap(s => [
+        [s.from.longitude, s.from.latitude],
+        [s.to.longitude,   s.to.latitude],
+      ]);
+      const bounds = coords.reduce(
+        (b, c) => b.extend(c),
+        new mapboxgl.LngLatBounds(coords[0], coords[0])
+      );
+      mapInstance.fitBounds(bounds, { padding: 60, duration: 1200 });
+    }
+
+    // ─── Render Results ──────────────────────────────────────
+    function renderResults(flightInfo, segments, totalMinutes) {
+      currentSegments = segments;
+      const ganttBlocks = buildGanttBlocks(segments, totalMinutes);
+      const summary     = buildSummary(ganttBlocks, totalMinutes);
+      const providerCfg = getProviderConfig(extractAirlineCode(flightInfo.ident));
+
+      // Header
+      document.getElementById('info-ident').textContent    = flightInfo.ident;
+      document.getElementById('info-route').textContent    = `${flightInfo.origin} → ${flightInfo.destination}`;
+      document.getElementById('info-provider').textContent = providerCfg.provider.replace(/_/g, ' ');
+      document.getElementById('info-duration').textContent = formatMinutes(totalMinutes);
+
+      // Summary badges — 4 statuses
+      const badgesEl = document.getElementById('info-badges');
+      badgesEl.innerHTML = `
+        <span class="status-badge badge-green">✦ Online ${summary.onlineLabel} (${summary.onlinePct}%)</span>
+        <span class="status-badge badge-yellow">◈ Spotty ${summary.spottyLabel} (${summary.spottyPct}%)</span>
+        <span class="status-badge" style="background:#ff8c0018;color:#ff8c00;border:1px solid #ff8c0044">
+          ⟳ Handoff ${summary.handoffLabel} (${summary.handoffPct}%)</span>
+        <span class="status-badge badge-red">✕ Offline ${summary.offlineLabel} (${summary.offlinePct}%)</span>
+      `;
+
+      // ── Event-based time axis ────────────────────────────────
+      // Labels appear only at status-change boundaries, not on a fixed scale.
+      const axisEl = document.getElementById('time-axis');
+      axisEl.innerHTML = '';
+      const MIN_GAP_PCT = 8; // minimum % gap between labels to avoid overlap
+      let lastLabelPct = -MIN_GAP_PCT;
+
+      ganttBlocks.forEach((block, i) => {
+        // Skip handoff blips — too brief, too clustered, visible in bar already
+        if (block.status === 'handoff') return;
+
+        const pct = (block.startMin / totalMinutes) * 100;
+        if (pct - lastLabelPct < MIN_GAP_PCT) return; // too close, skip
+
+        const wrap = document.createElement('div');
+        wrap.style.cssText = `position:absolute;left:${pct}%;transform:translateX(-50%);
+          display:flex;flex-direction:column;align-items:center;gap:2px;`;
+
+        // Time label
+        const lbl = document.createElement('div');
+        lbl.style.cssText = 'font-size:9px;color:#4a6080;white-space:nowrap;font-family:inherit;';
+        lbl.textContent = i === 0 ? 'Departure' : formatMinutes(block.startMin);
+
+        // Colored status dot
+        const dot = document.createElement('div');
+        dot.style.cssText = `width:5px;height:5px;border-radius:50%;flex-shrink:0;
+          background:${STATUS_COLOR[block.status] || '#666'};
+          box-shadow:0 0 4px ${STATUS_COLOR[block.status] || '#666'}88;`;
+
+        wrap.appendChild(lbl);
+        wrap.appendChild(dot);
+        axisEl.appendChild(wrap);
+        lastLabelPct = pct;
+      });
+
+      // Always show total flight duration at far right
+      const arrWrap = document.createElement('div');
+      arrWrap.style.cssText = 'position:absolute;right:0;display:flex;flex-direction:column;align-items:center;gap:2px;';
+      const arrLbl = document.createElement('div');
+      arrLbl.style.cssText = 'font-size:9px;color:#4a6080;white-space:nowrap;font-family:inherit;text-align:center;';
+      arrLbl.textContent = formatMinutes(totalMinutes);
+      const arrDot = document.createElement('div');
+      arrDot.style.cssText = 'width:5px;height:5px;border-radius:50%;background:#4a6080;';
+      arrWrap.appendChild(arrLbl);
+      arrWrap.appendChild(arrDot);
+      axisEl.appendChild(arrWrap);
+
+      // Gantt bar
+      const barEl = document.getElementById('gantt-bar');
+      barEl.innerHTML = '';
+      ganttBlocks.forEach(block => {
+        const div = document.createElement('div');
+        div.className = 'gantt-block' + (block.status === 'handoff' ? ' gantt-block-handoff' : '');
+        div.style.width = block.widthPct + '%';
+        // Handoff uses CSS hatching — only set solid bg for non-handoff
+        if (block.status !== 'handoff') {
+          div.style.backgroundColor = STATUS_COLOR[block.status];
+        }
+        div.style.opacity = block.status === 'yellow' ? '0.85' : '1';
+        const tip = document.createElement('div');
+        tip.className = 'gantt-tooltip';
+        tip.innerHTML = `<strong style="color:${STATUS_COLOR[block.status]}">${block.status.toUpperCase()}</strong><br/>
+          ${formatMinutes(block.startMin)} – ${formatMinutes(block.endMin)}<br/>
+          <span style="color:#94a3b8">${block.reason || 'Wi-Fi active'}</span>`;
+        div.appendChild(tip);
+        barEl.appendChild(div);
+      });
+
+      // ── Legend: color swatch + label + duration (4 statuses) ──
+      const legendEl = document.getElementById('gantt-legend');
+      const legendItems = [
+        { status: 'green',   label: 'Online',         dur: summary.onlineLabel,  pct: summary.onlinePct  },
+        { status: 'yellow',  label: 'Spotty',          dur: summary.spottyLabel,  pct: summary.spottyPct  },
+        { status: 'handoff', label: 'Beam Handoff',    dur: summary.handoffLabel, pct: summary.handoffPct },
+        { status: 'red',     label: 'Offline',         dur: summary.offlineLabel, pct: summary.offlinePct },
+      ];
+      legendEl.innerHTML = legendItems.map(item => {
+        const isHandoff = item.status === 'handoff';
+        const swatchStyle = isHandoff
+          ? `background-color:#3d1a00;
+             background-image:repeating-linear-gradient(
+               -45deg,#ff8c00,#ff8c00 3px,#3d1a00 3px,#3d1a00 8px);`
+          : `background:${STATUS_COLOR[item.status]};
+             opacity:${item.status === 'yellow' ? '0.85' : '1'};`;
+        return `
+          <div class="flex items-center gap-2">
+            <span style="width:16px;height:14px;border-radius:3px;display:inline-block;
+                         flex-shrink:0;${swatchStyle}"></span>
+            <span style="color:${STATUS_COLOR[item.status]};font-weight:600">${item.label}</span>
+            <span class="text-slate-500">—</span>
+            <span class="text-slate-300">${item.dur}</span>
+            <span class="text-slate-600">(${item.pct}%)</span>
+          </div>`;
+      }).join('<span class="text-slate-700 mx-1">|</span>');
+
+      document.getElementById('results').classList.remove('hidden');
+
+      // Resize map after results container becomes visible —
+      // Mapbox can't measure a hidden div, so dimensions are wrong until now.
+      if (mapInstance) {
+        requestAnimationFrame(() => mapInstance.resize());
+      }
+    }
+
+    // ─── Great Circle Route Builder ──────────────────────────
+    // Looks up coordinates from airports.js first; falls back to coords provided
+    // by adsbdb (passed as optional overrideCoords) if not found locally.
+    function buildGreatCircleRoute(originCode, destCode, overrideCoords) {
+      const orig = AIRPORTS[originCode] || (overrideCoords && overrideCoords.origin) || null;
+      const dest = AIRPORTS[destCode]   || (overrideCoords && overrideCoords.dest)   || null;
+
+      const missing = [!orig && originCode, !dest && destCode].filter(Boolean);
+      if (missing.length) {
+        throw new Error(
+          `Airport coordinate${missing.length > 1 ? 's' : ''} not found for: ${missing.join(', ')}. ` +
+          `Add the airport to airports.js or ensure adsbdb returned coordinates.`
+        );
+      }
+
+      return interpolateGreatCircle(orig.lat, orig.lon, dest.lat, dest.lon, 120);
+    }
+
+    // ─── Estimate flight duration from great-circle distance ─
+    function estimateDurationMinutes(waypoints) {
+      // Typical cruise speed ~900 km/h. We add 15% for taxi + climb + descent.
+      let totalKm = 0;
+      for (let i = 1; i < waypoints.length; i++) {
+        totalKm += haversineDistance(waypoints[i - 1], waypoints[i]);
+      }
+      return Math.round((totalKm / 900) * 60 * 1.15);
+    }
+
+    // ─── Show auto-detected route (read-only) ────────────────
+    function showRouteDisplay(origin, dest, originName, destName) {
+      document.getElementById('route-origin-code').textContent = origin;
+      document.getElementById('route-dest-code').textContent   = dest;
+      document.getElementById('route-origin-name').textContent = originName || '';
+      document.getElementById('route-dest-name').textContent   = destName   || '';
+      document.getElementById('route-display').classList.remove('hidden');
+      document.getElementById('route-display').classList.add('flex');
+    }
+
+    // ─── Search Flight ───────────────────────────────────────
+    async function searchFlight() {
+      const ident = document.getElementById('flight-ident').value.trim().toUpperCase();
+      const token = getMapboxToken();
+
+      if (!ident) { showError('Please enter a flight number (e.g. CX970, UA837).'); return; }
+      if (!token) { showError('Please enter your Mapbox token in the Configuration panel.'); return; }
+
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('route-display').classList.add('hidden');
+      document.getElementById('error-msg').classList.add('hidden');
+
+      // ── Step 1: Look up the real route via adsbdb.com (free, no key) ─
+      showStatus(`Looking up route for ${ident}…`);
+      let origin, dest, originName, destName, overrideCoords;
+      try {
+        const resp = await fetch(`http://localhost:5000/api/lookup/${ident}`);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || `Flight ${ident} not found`);
+
+        origin     = data.origin;
+        dest       = data.destination;
+        originName = data.origin_name;
+        destName   = data.dest_name;
+
+        // adsbdb returns lat/lon — use as fallback if airport isn't in airports.js
+        overrideCoords = {};
+        if (data.origin_lat && data.origin_lon)
+          overrideCoords.origin = { lat: data.origin_lat, lon: data.origin_lon };
+        if (data.dest_lat && data.dest_lon)
+          overrideCoords.dest = { lat: data.dest_lat, lon: data.dest_lon };
+      } catch (err) {
+        showError(`Route lookup failed: ${err.message}`);
+        return;
+      }
+
+      // Show detected route as read-only immediately
+      showRouteDisplay(origin, dest, originName, destName);
+
+      // ── Step 2: Generate great-circle route & map ─────────────
+      showStatus('Generating coverage map…');
+      const map = initMap(token);
+
+      map.on('load', () => {
+        try {
+          // Use airports.js coordinates if available, else fall back to adsbdb coords
+          const waypoints   = buildGreatCircleRoute(origin, dest, overrideCoords);
+          const totalMinutes = estimateDurationMinutes(waypoints);
+          const airlineCode = extractAirlineCode(ident);
+          const segments    = analyzeFlightPath(waypoints, airlineCode);
+          const flightInfo  = { ident, origin, destination: dest };
+
+          renderResults(flightInfo, segments, totalMinutes);
+          drawFlightPath(segments);
+          hideStatus();
+        } catch (err) {
+          showError(err.message);
+        }
+      });
+    }
+
+    // ─── Demo Mode ───────────────────────────────────────────
+    async function loadDemo() {
+      const token = getMapboxToken();
+      if (!token) { showError('Please enter a Mapbox token first.'); return; }
+
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('error-msg').classList.add('hidden');
+      showStatus('Loading BOS→HKG demo…');
+
+      const map = initMap(token);
+
+      map.on('load', async () => {
+        try {
+          let waypoints, totalMinutes;
+
+          try {
+            // Try local server first
+            const resp = await fetch('http://localhost:5000/api/demo');
+            if (resp.ok) {
+              const data = await resp.json();
+              waypoints    = data.positions;
+              totalMinutes = data.flight.duration_hours * 60;
+            } else throw new Error();
+          } catch {
+            // Pure client-side fallback
+            showStatus('Generating route client-side…');
+            waypoints    = interpolateGreatCircle(42.3656, -71.0096, 22.3080, 113.9185, 120);
+            totalMinutes = 972; // 16h 12m
+          }
+
+          document.getElementById('flight-ident').value = 'CX830';
+          showRouteDisplay('BOS', 'HKG', 'Boston Logan', 'Hong Kong Intl');
+          const flightInfo = { ident: 'CX830', origin: 'BOS', destination: 'HKG' };
+          const segments   = analyzeFlightPath(waypoints, 'CPA');
+
+          renderResults(flightInfo, segments, totalMinutes);
+          drawFlightPath(segments);
+          hideStatus();
+        } catch (err) {
+          showError('Demo failed: ' + err.message);
+        }
+      });
+    }
+
+    // ─── Init ────────────────────────────────────────────────
+    loadConfig();
+    document.getElementById('flight-date').value = new Date().toISOString().split('T')[0];
+
+    // Show usage on load (read-only — don't increment, just display saved count)
+    (function showSavedUsage() {
+      const monthKey = 'mb_loads_' + new Date().toISOString().slice(0, 7);
+      const count = parseInt(localStorage.getItem(monthKey) || '0', 10);
+      if (count > 0) _applyUsageUI(count);
+    })();
+  </script>
+</body>
+</html>

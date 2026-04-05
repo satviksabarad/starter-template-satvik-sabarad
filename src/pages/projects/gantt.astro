@@ -1,0 +1,90 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { SITE_TITLE } from '../../consts';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title={`AI Gantt Builder | ${SITE_TITLE}`} description="Chat-driven Gantt chart builder powered by Claude AI" />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <div class="breadcrumb"><a href="/projects/">← Projects</a></div>
+      <h1>AI Gantt Chart Builder</h1>
+      <div class="tags">
+        <span class="tag">Claude AI</span>
+        <span class="tag">Frappe Gantt</span>
+        <span class="tag">JavaScript</span>
+      </div>
+
+      <div class="details">
+        <p>
+          A chat-driven Gantt chart builder powered by Claude. Describe your project timeline in plain
+          English, paste in a task list, or upload a document — the AI parses it and renders an
+          interactive Gantt chart with tasks, durations, and dependencies automatically extracted.
+        </p>
+        <p>
+          You can keep chatting to add tasks, shift dates, adjust dependencies, or reorganize the
+          entire chart. Built on <a href="https://frappe.io/gantt" target="_blank">Frappe Gantt</a>
+          for the rendering layer.
+        </p>
+        <div class="note">
+          Requires an <strong>Anthropic API key</strong> — click the <strong>⚙ API Key</strong> button
+          in the app to add yours. Keys are stored locally in your browser and never sent anywhere
+          except the Anthropic API.
+        </div>
+      </div>
+
+      <div class="app-wrapper">
+        <iframe src="/gantt/index.html" title="AI Gantt Chart Builder"></iframe>
+      </div>
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2em 1em 3em;
+  }
+  .breadcrumb {
+    margin-bottom: 1em;
+    font-size: 0.9em;
+  }
+  .breadcrumb a { color: var(--accent); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { margin: 0 0 0.5em; }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4em; margin-bottom: 1.5em; }
+  .tag {
+    background: rgb(var(--gray-light));
+    border-radius: 4px;
+    padding: 0.2em 0.6em;
+    font-size: 0.8em;
+  }
+  .details { margin-bottom: 1.5em; line-height: 1.7; }
+  .details p { margin: 0 0 0.8em; }
+  .details a { color: var(--accent); }
+  .note {
+    background: rgb(var(--gray-light));
+    border-radius: 8px;
+    padding: 0.8em 1em;
+    font-size: 0.9em;
+  }
+  .app-wrapper {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgb(var(--gray-light));
+  }
+  iframe {
+    width: 100%;
+    height: 820px;
+    border: none;
+    display: block;
+  }
+</style>
