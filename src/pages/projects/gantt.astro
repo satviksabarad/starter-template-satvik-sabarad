@@ -40,7 +40,7 @@ import { SITE_TITLE } from '../../consts';
       </div>
 
       <div class="video-wrapper">
-        <p class="section-label">Demo</p>
+        <p class="section-label">Demo Video</p>
         <video controls preload="metadata">
           <source src="/gantt/demo.mp4" type="video/mp4" />
         </video>
@@ -58,58 +58,65 @@ import { SITE_TITLE } from '../../consts';
   main {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 2em 1em 3em;
+    padding: 2em 1.25em 3em;
   }
-  .breadcrumb {
-    margin-bottom: 1em;
-    font-size: 0.9em;
-  }
-  .breadcrumb a { color: var(--accent); text-decoration: none; }
+  .breadcrumb { margin-bottom: 1em; font-size: 0.875rem; }
+  .breadcrumb a { color: var(--accent); font-weight: 500; }
   .breadcrumb a:hover { text-decoration: underline; }
-  h1 { margin: 0 0 0.5em; }
-  .tags { display: flex; flex-wrap: wrap; gap: 0.4em; margin-bottom: 1.5em; }
+  h1 { margin: 0 0 0.5em; font-size: 1.75rem; }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.35em; margin-bottom: 1.5em; }
   .tag {
-    background: rgb(var(--gray-light));
-    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
     padding: 0.2em 0.6em;
-    font-size: 0.8em;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--text-muted);
   }
-  .details { margin-bottom: 1.5em; line-height: 1.7; }
-  .details p { margin: 0 0 0.8em; }
+  .details { margin-bottom: 1.5em; line-height: 1.7; color: var(--text-muted); }
+  .details p { margin: 0 0 0.75em; font-size: 0.95rem; }
   .details a { color: var(--accent); }
   .note {
-    background: rgb(var(--gray-light));
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 0.8em 1em;
-    font-size: 0.9em;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-top: 0.5em;
   }
+  .note strong { color: var(--text); }
   .section-label {
-    font-size: 0.75em;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: rgb(var(--gray));
+    letter-spacing: 0.1em;
+    color: var(--text-light);
     margin: 0 0 0.6em;
   }
-  .video-wrapper {
-    margin-bottom: 1.5em;
-  }
+  .video-wrapper { margin-bottom: 1.5em; }
   video {
     width: 100%;
-    border-radius: 12px;
-    border: 1px solid rgb(var(--gray-light));
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
     display: block;
     background: #000;
   }
   .app-wrapper {
-    border-radius: 12px;
+    border-radius: var(--radius);
     overflow: hidden;
-    border: 1px solid rgb(var(--gray-light));
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
   }
   iframe {
     width: 100%;
     height: 820px;
     border: none;
     display: block;
+  }
+  @media (max-width: 640px) {
+    h1 { font-size: 1.4rem; }
+    iframe { height: 600px; }
   }
 </style>

@@ -864,21 +864,24 @@
       showStatus(`Looking up route for ${ident}…`);
       let origin, dest, originName, destName, overrideCoords;
       try {
-        const resp = await fetch(`http://localhost:5000/api/lookup/${ident}`);
+        const resp = await fetch(`https://api.adsbdb.com/v0/callsign/${ident}`);
+        if (!resp.ok) throw new Error(`Flight ${ident} not found (HTTP ${resp.status})`);
         const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || `Flight ${ident} not found`);
 
-        origin     = data.origin;
-        dest       = data.destination;
-        originName = data.origin_name;
-        destName   = data.dest_name;
+        const fr = data.response?.flightroute;
+        if (!fr) throw new Error(`No route data found for ${ident}. Try LOAD DEMO to test the app.`);
 
-        // adsbdb returns lat/lon — use as fallback if airport isn't in airports.js
+        origin     = fr.origin.iata_code;
+        dest       = fr.destination.iata_code;
+        originName = fr.origin.municipality || fr.origin.name || '';
+        destName   = fr.destination.municipality || fr.destination.name || '';
+
+        // Use coordinates from adsbdb as fallback if airport isn't in airports.js
         overrideCoords = {};
-        if (data.origin_lat && data.origin_lon)
-          overrideCoords.origin = { lat: data.origin_lat, lon: data.origin_lon };
-        if (data.dest_lat && data.dest_lon)
-          overrideCoords.dest = { lat: data.dest_lat, lon: data.dest_lon };
+        if (fr.origin.latitude && fr.origin.longitude)
+          overrideCoords.origin = { lat: parseFloat(fr.origin.latitude), lon: parseFloat(fr.origin.longitude) };
+        if (fr.destination.latitude && fr.destination.longitude)
+          overrideCoords.dest = { lat: parseFloat(fr.destination.latitude), lon: parseFloat(fr.destination.longitude) };
       } catch (err) {
         showError(`Route lookup failed: ${err.message}`);
         return;
@@ -922,22 +925,9 @@
 
       map.on('load', async () => {
         try {
-          let waypoints, totalMinutes;
-
-          try {
-            // Try local server first
-            const resp = await fetch('http://localhost:5000/api/demo');
-            if (resp.ok) {
-              const data = await resp.json();
-              waypoints    = data.positions;
-              totalMinutes = data.flight.duration_hours * 60;
-            } else throw new Error();
-          } catch {
-            // Pure client-side fallback
-            showStatus('Generating route client-side…');
-            waypoints    = interpolateGreatCircle(42.3656, -71.0096, 22.3080, 113.9185, 120);
-            totalMinutes = 972; // 16h 12m
-          }
+          // Pure client-side demo — BOS → HKG
+          const waypoints    = interpolateGreatCircle(42.3656, -71.0096, 22.3080, 113.9185, 120);
+          const totalMinutes = 972; // 16h 12m
 
           document.getElementById('flight-ident').value = 'CX830';
           showRouteDisplay('BOS', 'HKG', 'Boston Logan', 'Hong Kong Intl');

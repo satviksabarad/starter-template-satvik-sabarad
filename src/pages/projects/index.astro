@@ -10,18 +10,21 @@ const projects = [
     title: 'Battery Charging Rate Analyzer',
     description: 'A real-time battery monitoring tool for Android (Termux). Tracks charging sessions with start time, battery levels, and duration. Runs a local web dashboard with session history stored in localStorage.',
     tags: ['Python', 'HTML', 'Android / Termux'],
+    emoji: '🔋',
   },
   {
     slug: 'aeroconnect',
     title: 'AeroConnect — Inflight Wi-Fi Predictor',
     description: 'Predicts inflight Wi-Fi quality and availability for any flight route. Models satellite coverage, beam handoffs, polar blackout zones, and per-airline provider quirks on an interactive map with a Gantt-style timeline.',
     tags: ['JavaScript', 'Mapbox GL', 'Physics Engine'],
+    emoji: '✈️',
   },
   {
     slug: 'gantt',
     title: 'AI Gantt Chart Builder',
     description: 'Chat with Claude to build Gantt charts instantly. Describe your project in plain English, paste a task list, or upload a document — the AI extracts tasks, dates, and dependencies and renders an interactive timeline.',
     tags: ['Claude AI', 'Frappe Gantt', 'JavaScript'],
+    emoji: '📊',
   },
 ];
 ---
@@ -34,12 +37,15 @@ const projects = [
   <body>
     <Header />
     <main>
-      <h1>Projects</h1>
-      <p class="subtitle">Things I've built and tinkered with.</p>
+      <div class="page-header">
+        <h1>Projects</h1>
+        <p class="subtitle">Things I've built and tinkered with.</p>
+      </div>
 
       <div class="project-list">
         {projects.map((p) => (
           <a href={`/projects/${p.slug}/`} class="project-card">
+            <div class="card-emoji">{p.emoji}</div>
             <div class="card-body">
               <h2>{p.title}</h2>
               <p class="desc">{p.description}</p>
@@ -60,55 +66,80 @@ const projects = [
   main {
     max-width: 720px;
     margin: 0 auto;
-    padding: 2em 1em 3em;
+    padding: 2.5em 1.25em 4em;
   }
-  h1 { margin-bottom: 0.25em; }
+  .page-header { margin-bottom: 2em; }
+  .page-header h1 { margin-bottom: 0.25em; }
   .subtitle {
-    color: rgb(var(--gray));
-    margin-top: 0;
-    margin-bottom: 2em;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin: 0;
   }
   .project-list {
     display: flex;
     flex-direction: column;
-    gap: 1em;
+    gap: 0.75em;
   }
   .project-card {
     display: flex;
     align-items: center;
-    gap: 1em;
-    border: 1px solid rgb(var(--gray-light));
-    border-radius: 12px;
-    padding: 1.4em 1.6em;
+    gap: 1.25em;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.4em 1.5em;
     text-decoration: none;
     color: inherit;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    background: var(--bg);
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
   }
   .project-card:hover {
     border-color: var(--accent);
-    box-shadow: 0 2px 12px rgba(var(--accent-dark), 0.08);
+    box-shadow: 0 2px 16px rgba(var(--accent-rgb), 0.1);
+    transform: translateY(-1px);
+    text-decoration: none;
   }
-  .card-body { flex: 1; }
-  .card-body h2 { margin: 0 0 0.5em; font-size: 1.1em; }
+  .card-emoji {
+    font-size: 1.75rem;
+    flex-shrink: 0;
+    width: 2.5em;
+    text-align: center;
+  }
+  .card-body { flex: 1; min-width: 0; }
+  .card-body h2 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.3em;
+  }
   .desc {
-    margin: 0 0 0.8em;
-    color: rgb(var(--gray-dark));
-    font-size: 0.92em;
-    line-height: 1.6;
+    margin: 0 0 0.75em;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    line-height: 1.55;
   }
-  .tags { display: flex; flex-wrap: wrap; gap: 0.4em; }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.35em; }
   .tag {
-    background: rgb(var(--gray-light));
-    border-radius: 4px;
-    padding: 0.2em 0.6em;
-    font-size: 0.78em;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.2em 0.55em;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--text-muted);
   }
   .card-arrow {
-    font-size: 1.4em;
-    color: rgb(var(--gray));
+    font-size: 1.1rem;
+    color: var(--text-light);
     flex-shrink: 0;
+    transition: color 0.15s, transform 0.15s;
   }
   .project-card:hover .card-arrow {
     color: var(--accent);
+    transform: translateX(3px);
+  }
+
+  @media (max-width: 640px) {
+    .card-emoji { display: none; }
+    .project-card { padding: 1.1em 1.2em; gap: 1em; }
+    .card-body h2 { font-size: 0.95rem; }
   }
 </style>

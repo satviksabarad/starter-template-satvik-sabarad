@@ -23,10 +23,9 @@ import { SITE_TITLE } from '../../consts';
 
       <div class="details">
         <p>
-          Predicts inflight Wi-Fi quality and availability for any flight route. Enter a departure
-          and arrival airport, select your airline, and the app models the full flight path on a
-          great-circle route — flagging satellite beam handoffs, polar blackout zones (above 71°N/S),
-          and per-airline provider quirks.
+          Predicts inflight Wi-Fi quality and availability for any flight route. Enter a flight number
+          (e.g. CX830, UA837) and the app looks up the real route, models satellite beam handoffs,
+          polar blackout zones (above 71°N/S), and per-airline provider quirks.
         </p>
         <p>
           The output is an interactive Mapbox map showing the route overlaid with coverage quality,
@@ -45,49 +44,40 @@ import { SITE_TITLE } from '../../consts';
 
 <style>
   main {
-    max-width: 980px;
+    max-width: 1000px;
     margin: 0 auto;
-    padding: 2em 1em 3em;
+    padding: 2em 1.25em 3em;
   }
-  .breadcrumb {
-    margin-bottom: 1em;
-    font-size: 0.9em;
-  }
-  .breadcrumb a {
-    color: var(--accent);
-    text-decoration: none;
-  }
+  .breadcrumb { margin-bottom: 1em; font-size: 0.875rem; }
+  .breadcrumb a { color: var(--accent); font-weight: 500; }
   .breadcrumb a:hover { text-decoration: underline; }
-  h1 { margin: 0 0 0.5em; }
-  .tags { display: flex; flex-wrap: wrap; gap: 0.4em; margin-bottom: 1.5em; }
+  h1 { margin: 0 0 0.5em; font-size: 1.75rem; }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.35em; margin-bottom: 1.5em; }
   .tag {
-    background: rgb(var(--gray-light));
-    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
     padding: 0.2em 0.6em;
-    font-size: 0.8em;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--text-muted);
   }
-  .details {
-    margin-bottom: 1.5em;
-    line-height: 1.7;
-  }
-  .details p { margin: 0 0 0.8em; }
-  .note {
-    background: rgb(var(--gray-light));
-    border-radius: 8px;
-    padding: 0.8em 1em;
-    font-size: 0.9em;
-    margin-top: 0.5em;
-  }
-  .note a { color: var(--accent); }
+  .details { margin-bottom: 1.5em; line-height: 1.7; color: var(--text-muted); }
+  .details p { margin: 0 0 0.75em; font-size: 0.95rem; }
   .app-wrapper {
-    border-radius: 12px;
+    border-radius: var(--radius);
     overflow: hidden;
-    border: 1px solid rgb(var(--gray-light));
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
   }
   iframe {
     width: 100%;
     height: 860px;
     border: none;
     display: block;
+  }
+  @media (max-width: 640px) {
+    h1 { font-size: 1.4rem; }
+    iframe { height: 600px; }
   }
 </style>

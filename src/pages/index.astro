@@ -3,40 +3,235 @@ import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
+
+const projects = [
+  {
+    slug: 'battery-analyzer',
+    title: 'Battery Charging Rate Analyzer',
+    description: 'Real-time battery monitoring tool for Android (Termux). Tracks charging sessions with start time, levels, and duration via a local web dashboard.',
+    tags: ['Python', 'HTML', 'Android / Termux'],
+  },
+  {
+    slug: 'aeroconnect',
+    title: 'AeroConnect — Inflight Wi-Fi Predictor',
+    description: 'Predicts inflight Wi-Fi quality for any flight route. Models satellite coverage, beam handoffs, polar blackout zones, and per-airline quirks on an interactive map.',
+    tags: ['JavaScript', 'Mapbox GL', 'Physics Engine'],
+  },
+  {
+    slug: 'gantt',
+    title: 'AI Gantt Chart Builder',
+    description: 'Chat with Claude to build Gantt charts instantly. Describe your project in plain English and the AI extracts tasks, dates, and dependencies.',
+    tags: ['Claude AI', 'Frappe Gantt', 'JavaScript'],
+  },
+];
 ---
 
 <!doctype html>
 <html lang="en">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-	</head>
-	<body>
-		<Header />
-		<main>
-			<h1>Hi, I'm Satvik Sabarad</h1>
-			<p>Manufacturing Engineer & AI Enthusiast</p>
+  <head>
+    <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <!-- Hero -->
+      <section class="hero">
+        <div class="avatar">SS</div>
+        <div class="hero-text">
+          <h1>Satvik Sabarad</h1>
+          <p class="subtitle">Manufacturing Engineer &amp; AI Enthusiast</p>
+          <p class="bio">
+            I'm a manufacturing engineer with a passion for intelligent systems. I explore how AI
+            can transform the way we design, build, and optimize the world around us — and I build
+            tools to make that real.
+          </p>
+          <div class="hero-links">
+            <a href="/projects/" class="btn-primary">View Projects →</a>
+            <a href="https://www.linkedin.com/in/satviksabarad/" target="_blank" class="btn-ghost">LinkedIn</a>
+          </div>
+        </div>
+      </section>
 
-			<section>
-				<h2>About Me</h2>
-				<p>
-					I'm a Manufacturing Engineer with a passion for AI and technology. I enjoy exploring how
-					intelligent systems can transform the way we design, build, and optimize the world around us.
-				</p>
-			</section>
-
-			<section>
-				<h2>Projects</h2>
-				<p>Check out my <a href="/projects">Projects page</a> to see what I've been building.</p>
-			</section>
-
-			<section>
-				<h2>Get in Touch</h2>
-				<ul>
-					<li><a href="https://www.linkedin.com/in/satviksabarad/" target="_blank">LinkedIn</a></li>
-					<li><a href="https://github.com/SatvikSabarad" target="_blank">GitHub</a></li>
-				</ul>
-			</section>
-		</main>
-		<Footer />
-	</body>
+      <!-- Projects -->
+      <section class="projects-section">
+        <h2>Featured Projects</h2>
+        <div class="project-grid">
+          {projects.map((p) => (
+            <a href={`/projects/${p.slug}/`} class="project-card">
+              <div class="card-inner">
+                <h3>{p.title}</h3>
+                <p>{p.description}</p>
+                <div class="tags">
+                  {p.tags.map(t => <span class="tag">{t}</span>)}
+                </div>
+              </div>
+              <span class="arrow">→</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+    <Footer />
+  </body>
 </html>
+
+<style>
+  main {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 3em 1.25em 4em;
+  }
+
+  /* ── Hero ───────────────────────────────────── */
+  .hero {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.75em;
+    padding-bottom: 3em;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 3em;
+  }
+  .avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #818cf8);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+  }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero-text h1 {
+    font-size: 1.9rem;
+    margin-bottom: 0.2em;
+  }
+  .subtitle {
+    font-size: 1rem;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 0.8em;
+  }
+  .bio {
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 1.25em;
+    font-size: 0.95rem;
+  }
+  .hero-links {
+    display: flex;
+    gap: 0.75em;
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    display: inline-block;
+    padding: 0.55em 1.2em;
+    background: var(--accent);
+    color: #fff !important;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-primary:hover {
+    background: var(--accent-dark);
+    transform: translateY(-1px);
+    text-decoration: none;
+  }
+  .btn-ghost {
+    display: inline-block;
+    padding: 0.55em 1.2em;
+    border: 1px solid var(--border);
+    color: var(--text-muted) !important;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-ghost:hover {
+    border-color: var(--text-muted);
+    color: var(--text) !important;
+    text-decoration: none;
+  }
+
+  /* ── Projects ───────────────────────────────── */
+  .projects-section h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 1.25em;
+  }
+  .project-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+  }
+  .project-card {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    padding: 1.25em 1.5em;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: inherit;
+    background: var(--bg);
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  }
+  .project-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 16px rgba(var(--accent-rgb), 0.1);
+    transform: translateY(-1px);
+    text-decoration: none;
+  }
+  .card-inner { flex: 1; min-width: 0; }
+  .card-inner h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.3em;
+    color: var(--text);
+  }
+  .card-inner p {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75em;
+    line-height: 1.5;
+  }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.35em; }
+  .tag {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.2em 0.55em;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--text-muted);
+  }
+  .arrow {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    flex-shrink: 0;
+    transition: color 0.15s, transform 0.15s;
+  }
+  .project-card:hover .arrow {
+    color: var(--accent);
+    transform: translateX(3px);
+  }
+
+  @media (max-width: 640px) {
+    .hero {
+      flex-direction: column;
+      gap: 1.25em;
+    }
+    .hero-text h1 { font-size: 1.6rem; }
+    .project-card { padding: 1em 1.1em; }
+  }
+</style>
