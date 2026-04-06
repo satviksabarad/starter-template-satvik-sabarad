@@ -31,14 +31,10 @@ const projects = [
 
       <!-- ── Masthead ───────────────────────────────── -->
       <section class="masthead">
-        <div class="masthead-text">
-          <p class="overline">Manufacturing Engineer &amp; AI Builder</p>
-          <h1 class="name">Satvik<br/>Sabarad</h1>
-          <div class="rule"></div>
-        </div>
-        <div class="masthead-photo">
-          <img src="/avatar.png" alt="Satvik Sabarad" />
-        </div>
+        <img class="avatar" src="/avatar.jpg" alt="Satvik Sabarad" />
+        <p class="overline">Manufacturing Engineer &amp; AI Builder</p>
+        <h1 class="name">Satvik Sabarad</h1>
+        <div class="rule"></div>
       </section>
 
       <!-- ── Two-column intro ───────────────────────── -->
@@ -107,13 +103,17 @@ const projects = [
 
   /* ── Masthead ─────────────────────────────────── */
   .masthead {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: end;
-    gap: 2em;
     margin-bottom: 2em;
   }
-  .masthead-text { min-width: 0; }
+  .avatar {
+    width: 88px;
+    height: 88px;
+    object-fit: cover;
+    object-position: center top;
+    border-radius: 50%;
+    display: block;
+    margin-bottom: 1em;
+  }
   .overline {
     font-family: 'Inter', sans-serif;
     font-size: 0.72rem;
@@ -121,11 +121,11 @@ const projects = [
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--text-muted);
-    margin: 0 0 0.6em;
+    margin: 0 0 0.5em;
   }
   .name {
     font-family: 'Playfair Display', Georgia, serif;
-    font-size: clamp(2.8rem, 7vw, 4.5rem);
+    font-size: clamp(2.6rem, 7vw, 4.2rem);
     font-weight: 900;
     letter-spacing: -0.02em;
     line-height: 1.05;
@@ -140,20 +140,6 @@ const projects = [
   .rule-section {
     margin: 2em 0;
     opacity: 0.1;
-  }
-
-  /* ── Photo ────────────────────────────────────── */
-  .masthead-photo {
-    flex-shrink: 0;
-  }
-  .masthead-photo img {
-    width: 180px;
-    height: 220px;
-    object-fit: cover;
-    object-position: center top;
-    border-radius: 10px;
-    display: block;
-    filter: grayscale(8%);
   }
 
   /* ── Two-column bio ───────────────────────────── */
@@ -278,23 +264,6 @@ const projects = [
   /* ── Mobile ───────────────────────────────────── */
   @media (max-width: 640px) {
     main { padding: 2em 1.25em 4em; }
-
-    .masthead {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto auto;
-    }
-    .masthead-photo {
-      grid-row: 1;
-      display: flex;
-      justify-content: center;
-      margin-bottom: 0.5em;
-    }
-    .masthead-photo img {
-      width: 140px;
-      height: 170px;
-      border-radius: 8px;
-    }
-    .masthead-text { grid-row: 2; }
 
     .bio-cols {
       grid-template-columns: 1fr;
